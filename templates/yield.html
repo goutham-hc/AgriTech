@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Yield Prediction — AgriTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f7f0; color: #1a1a1a; }
+
+    nav {
+      background: #1a5c2a; padding: 14px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .nav-logo { color: white; font-size: 22px; font-weight: 700; }
+    .nav-logo span { color: #7edb7e; }
+    nav ul { list-style: none; display: flex; gap: 30px; }
+    nav ul a { color: #cceedd; text-decoration: none; font-size: 15px; font-weight: 500; }
+    nav ul a:hover { color: #7edb7e; }
+
+    .page-header {
+      background: linear-gradient(135deg, #1a5c2a, #388e3c);
+      color: white; text-align: center; padding: 50px 20px;
+    }
+    .page-header h1 { font-size: 36px; font-weight: 800; margin-bottom: 10px; }
+    .page-header p  { font-size: 16px; color: #c8e6c9; }
+
+    .container { max-width: 780px; margin: 40px auto; padding: 0 20px 60px; }
+
+    .form-card {
+      background: white; border-radius: 16px;
+      padding: 40px; box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+    }
+    .form-card h2 {
+      font-size: 20px; color: #1a5c2a; margin-bottom: 28px;
+      font-weight: 700; border-left: 4px solid #1a5c2a; padding-left: 12px;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: #444; }
+    .form-group input,
+    .form-group select {
+      padding: 11px 14px; border: 1.5px solid #ddd;
+      border-radius: 8px; font-size: 14px;
+      transition: border 0.2s; outline: none;
+    }
+    .form-group input:focus,
+    .form-group select:focus { border-color: #1a5c2a; }
+
+    .btn-submit {
+      margin-top: 28px; width: 100%;
+      background: #1a5c2a; color: white; border: none;
+      padding: 15px; border-radius: 10px; font-size: 17px;
+      font-weight: 700; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-submit:hover { background: #145222; }
+
+    /* Result */
+    .result-box {
+      margin-top: 30px; border-radius: 14px;
+      padding: 36px; display: none;
+      animation: fadeIn 0.4s ease; text-align: center;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+
+    .result-box.high   { background: #e8f5e9; border: 2px solid #66bb6a; }
+    .result-box.medium { background: #fff8e1; border: 2px solid #ffca28; }
+    .result-box.low    { background: #ffebee; border: 2px solid #ef9a9a; }
+
+    .result-emoji { font-size: 70px; margin-bottom: 16px; }
+    .result-category {
+      font-size: 36px; font-weight: 800; margin-bottom: 10px;
+    }
+    .high   .result-category { color: #1a5c2a; }
+    .medium .result-category { color: #f57f17; }
+    .low    .result-category { color: #c62828; }
+
+    .result-msg {
+      font-size: 16px; color: #555;
+      max-width: 480px; margin: 0 auto 24px;
+      line-height: 1.6;
+    }
+
+    /* Yield meter */
+    .meter-wrap { margin: 20px auto; max-width: 400px; }
+    .meter-label {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: #888; margin-bottom: 6px;
+    }
+    .meter-bar {
+      height: 16px; background: #e0e0e0;
+      border-radius: 8px; overflow: hidden;
+    }
+    .meter-fill {
+      height: 100%; border-radius: 8px;
+      transition: width 1s ease;
+    }
+    .high   .meter-fill { background: #1a5c2a; }
+    .medium .meter-fill { background: #f57f17; }
+    .low    .meter-fill { background: #c62828; }
+
+    .tips-box {
+      background: white; border-radius: 10px;
+      padding: 16px 20px; margin-top: 16px;
+      text-align: left; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .tips-box h4 { font-size: 14px; color: #1a5c2a; margin-bottom: 10px; font-weight: 700; }
+    .tips-box p  { font-size: 13px; color: #555; line-height: 1.7; }
+
+    .loading {
+      text-align: center; padding: 20px; color: #1a5c2a;
+      font-weight: 600; display: none; font-size: 16px;
+    }
+
+    footer {
+      background: #1a5c2a; color: #a5d6a7;
+      text-align: center; padding: 20px; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <div class="nav-logo">🌾 Agri<span>Tech</span></div>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/recommend">Crop Recommend</a></li>
+      <li><a href="/yield">Yield Predict</a></li>
+      <li><a href="/price">Price Predict</a></li>
+    </ul>
+  </nav>
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <h1>📊 Yield Prediction</h1>
+    <p>Find out if your harvest will be Low, Medium, or High before you grow</p>
+  </div>
+
+  <div class="container">
+    <div class="form-card">
+      <h2>Enter Your Crop & Farm Details</h2>
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>🌱 Crop</label>
+          <select id="crop">
+            <option value="">-- Select Crop --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>📍 Location (District)</label>
+          <select id="location">
+            <option value="">-- Select District --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>🌤️ Season</label>
+          <select id="season">
+            <option value="">-- Select Season --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>🪨 Soil Type</label>
+          <select id="soil">
+            <option value="">-- Select Soil --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>💧 Irrigation Type</label>
+          <select id="irrigation">
+            <option value="">-- Select Irrigation --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>🌾 Farm Area (acres)</label>
+          <input type="number" id="area" placeholder="e.g. 5" min="1"/>
+        </div>
+
+        <div class="form-group">
+          <label>📅 Year</label>
+          <input type="number" id="year" placeholder="e.g. 2024" value="2024"/>
+        </div>
+
+        <div class="form-group">
+          <label>🌧️ Rainfall (mm)</label>
+          <input type="number" id="rainfall" placeholder="e.g. 1200"/>
+        </div>
+
+        <div class="form-group">
+          <label>🌡️ Temperature (°C)</label>
+          <input type="number" id="temperature" placeholder="e.g. 28"/>
+        </div>
+
+        <div class="form-group">
+          <label>💨 Humidity (%)</label>
+          <input type="number" id="humidity" placeholder="e.g. 55" min="0" max="100"/>
+        </div>
+
+      </div>
+
+      <button class="btn-submit" onclick="predictYield()">
+        📊 Predict My Yield
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">⏳ AI is calculating your yield...</div>
+
+    <!-- Result -->
+    <div class="result-box" id="result-box">
+      <div class="result-emoji" id="result-emoji">📊</div>
+      <div class="result-category" id="result-category">—</div>
+      <div class="result-msg" id="result-msg">—</div>
+
+      <div class="meter-wrap">
+        <div class="meter-label">
+          <span>Low</span><span>Medium</span><span>High</span>
+        </div>
+        <div class="meter-bar">
+          <div class="meter-fill" id="meter-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="tips-box">
+        <h4>💡 What should you do?</h4>
+        <p id="tips-text">—</p>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <p>Built with ❤️ by Team AgriTech — Sree Siddaganga College 2025–26</p>
+  </footer>
+
+  <script>
+    window.onload = async function() {
+      const res  = await fetch('/api/options');
+      const data = await res.json();
+      populate('crop',       data.crops);
+      populate('location',   data.locations);
+      populate('season',     data.seasons);
+      populate('soil',       data.soils);
+      populate('irrigation', data.irrigations);
+    };
+
+    function populate(id, items) {
+      const sel = document.getElementById(id);
+      items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item; opt.textContent = item;
+        sel.appendChild(opt);
+      });
+    }
+
+    const tipsMap = {
+      'High':   'Your conditions are excellent! Make sure you have enough storage and plan your selling strategy in advance to get the best market price.',
+      'Medium': 'Moderate yield expected. Ensure timely irrigation and apply recommended fertilizers to push towards higher yield.',
+      'Low':    'Low yield conditions detected. Consider improving soil quality, switching irrigation method, or consulting an agricultural officer for guidance.'
+    };
+
+    const meterMap = { 'High': '90%', 'Medium': '55%', 'Low': '20%' };
+    const emojiMap = { 'High': '🟢', 'Medium': '🟡', 'Low': '🔴' };
+
+    async function predictYield() {
+      const crop        = document.getElementById('crop').value;
+      const location    = document.getElementById('location').value;
+      const season      = document.getElementById('season').value;
+      const soil        = document.getElementById('soil').value;
+      const irrigation  = document.getElementById('irrigation').value;
+      const area        = document.getElementById('area').value;
+      const year        = document.getElementById('year').value;
+      const rainfall    = document.getElementById('rainfall').value;
+      const temperature = document.getElementById('temperature').value;
+      const humidity    = document.getElementById('humidity').value;
+
+      if (!crop||!location||!season||!soil||!irrigation||!area||!rainfall||!temperature||!humidity) {
+        alert('⚠️ Please fill all fields!');
+        return;
+      }
+
+      document.getElementById('loading').style.display    = 'block';
+      document.getElementById('result-box').style.display = 'none';
+
+      try {
+        const res = await fetch('/api/yield', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            crop, location, season, soil, irrigation,
+            area, year, rainfall, temperature, humidity
+          })
+        });
+
+        const data = await res.json();
+        document.getElementById('loading').style.display = 'none';
+
+        if (data.success) {
+          const cat = data.yield_category;
+          const box = document.getElementById('result-box');
+
+          box.className = `result-box ${cat.toLowerCase()}`;
+          document.getElementById('result-emoji').textContent    = emojiMap[cat];
+          document.getElementById('result-category').textContent = `${cat} Yield Expected`;
+          document.getElementById('result-msg').textContent      = data.message;
+          document.getElementById('tips-text').textContent       = tipsMap[cat];
+          document.getElementById('meter-fill').style.width      = meterMap[cat];
+
+          box.style.display = 'block';
+        } else {
+          alert('Error: ' + data.error);
+        }
+
+      } catch(e) {
+        document.getElementById('loading').style.display = 'none';
+        alert('Connection error. Make sure Flask server is running.');
+      }
+    }
+  </script>
+</body>
+</html>
+```
+
+---
+
+### ▶️ Test It!
+
+Open browser and go to:
+```
+http://127.0.0.1:5000/yield

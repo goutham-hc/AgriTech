@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crop Recommendation — AgriTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f7f0; color: #1a1a1a; }
+
+    nav {
+      background: #1a5c2a; padding: 14px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .nav-logo { color: white; font-size: 22px; font-weight: 700; }
+    .nav-logo span { color: #7edb7e; }
+    nav ul { list-style: none; display: flex; gap: 30px; }
+    nav ul a { color: #cceedd; text-decoration: none; font-size: 15px; font-weight: 500; }
+    nav ul a:hover { color: #7edb7e; }
+
+    .page-header {
+      background: linear-gradient(135deg, #1a5c2a, #388e3c);
+      color: white; text-align: center; padding: 50px 20px;
+    }
+    .page-header h1 { font-size: 36px; font-weight: 800; margin-bottom: 10px; }
+    .page-header p  { font-size: 16px; color: #c8e6c9; }
+
+    .container {
+      max-width: 780px; margin: 40px auto;
+      padding: 0 20px 60px;
+    }
+
+    .form-card {
+      background: white; border-radius: 16px;
+      padding: 40px; box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+    }
+    .form-card h2 {
+      font-size: 20px; color: #1a5c2a;
+      margin-bottom: 28px; font-weight: 700;
+      border-left: 4px solid #1a5c2a;
+      padding-left: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: #444; }
+    .form-group input,
+    .form-group select {
+      padding: 11px 14px; border: 1.5px solid #ddd;
+      border-radius: 8px; font-size: 14px;
+      transition: border 0.2s; outline: none;
+    }
+    .form-group input:focus,
+    .form-group select:focus { border-color: #1a5c2a; }
+
+    .btn-submit {
+      margin-top: 28px; width: 100%;
+      background: #1a5c2a; color: white;
+      border: none; padding: 15px;
+      border-radius: 10px; font-size: 17px;
+      font-weight: 700; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover { background: #145222; }
+
+    /* Result Box */
+    .result-box {
+      margin-top: 30px; border-radius: 14px;
+      padding: 30px; display: none;
+      animation: fadeIn 0.4s ease;
+    }
+    .result-box.success { background: #e8f5e9; border: 2px solid #66bb6a; }
+    .result-box.error   { background: #ffebee; border: 2px solid #ef9a9a; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    .result-main {
+      text-align: center; margin-bottom: 24px;
+    }
+    .result-main .crop-icon { font-size: 56px; margin-bottom: 10px; }
+    .result-main h2 { font-size: 28px; color: #1a5c2a; font-weight: 800; }
+    .result-main p  { font-size: 15px; color: #555; margin-top: 6px; }
+
+    .top3-title {
+      font-size: 14px; font-weight: 700;
+      color: #1a5c2a; margin-bottom: 12px;
+    }
+    .top3-list { display: flex; gap: 12px; flex-wrap: wrap; }
+    .top3-item {
+      background: white; border-radius: 10px;
+      padding: 12px 18px; flex: 1;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      text-align: center; min-width: 120px;
+    }
+    .top3-item .rank  { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .top3-item .cname { font-size: 15px; font-weight: 700; color: #1a5c2a; }
+    .top3-item .conf  { font-size: 12px; color: #555; margin-top: 4px; }
+    .conf-bar {
+      height: 6px; background: #c8e6c9;
+      border-radius: 3px; margin-top: 8px; overflow: hidden;
+    }
+    .conf-fill { height: 100%; background: #1a5c2a; border-radius: 3px; }
+
+    .loading {
+      text-align: center; padding: 20px;
+      color: #1a5c2a; font-weight: 600;
+      display: none; font-size: 16px;
+    }
+
+    footer {
+      background: #1a5c2a; color: #a5d6a7;
+      text-align: center; padding: 20px; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <div class="nav-logo">🌾 Agri<span>Tech</span></div>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/recommend">Crop Recommend</a></li>
+      <li><a href="/yield">Yield Predict</a></li>
+      <li><a href="/price">Price Predict</a></li>
+    </ul>
+  </nav>
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <h1>🌱 Crop Recommendation</h1>
+    <p>Enter your farm details and get AI-powered crop suggestions instantly</p>
+  </div>
+
+  <div class="container">
+    <div class="form-card">
+      <h2>Enter Your Farm Details</h2>
+
+      <div class="form-grid">
+
+        <!-- Location -->
+        <div class="form-group">
+          <label>📍 Location (District)</label>
+          <select id="location">
+            <option value="">-- Select District --</option>
+          </select>
+        </div>
+
+        <!-- Season -->
+        <div class="form-group">
+          <label>🌤️ Season</label>
+          <select id="season">
+            <option value="">-- Select Season --</option>
+          </select>
+        </div>
+
+        <!-- Soil Type -->
+        <div class="form-group">
+          <label>🪨 Soil Type</label>
+          <select id="soil">
+            <option value="">-- Select Soil --</option>
+          </select>
+        </div>
+
+        <!-- Irrigation -->
+        <div class="form-group">
+          <label>💧 Irrigation Type</label>
+          <select id="irrigation">
+            <option value="">-- Select Irrigation --</option>
+          </select>
+        </div>
+
+        <!-- Area -->
+        <div class="form-group">
+          <label>🌾 Farm Area (acres)</label>
+          <input type="number" id="area" placeholder="e.g. 5" min="1"/>
+        </div>
+
+        <!-- Year -->
+        <div class="form-group">
+          <label>📅 Year</label>
+          <input type="number" id="year" placeholder="e.g. 2024" value="2024"/>
+        </div>
+
+        <!-- Rainfall -->
+        <div class="form-group">
+          <label>🌧️ Rainfall (mm)</label>
+          <input type="number" id="rainfall" placeholder="e.g. 1200"/>
+        </div>
+
+        <!-- Temperature -->
+        <div class="form-group">
+          <label>🌡️ Temperature (°C)</label>
+          <input type="number" id="temperature" placeholder="e.g. 28"/>
+        </div>
+
+        <!-- Humidity -->
+        <div class="form-group" style="grid-column: span 2;">
+          <label>💨 Humidity (%)</label>
+          <input type="number" id="humidity" placeholder="e.g. 55" min="0" max="100"/>
+        </div>
+
+      </div>
+
+      <button class="btn-submit" onclick="getRecommendation()">
+        🤖 Get AI Crop Recommendation
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">⏳ AI is analysing your farm data...</div>
+
+    <!-- Result -->
+    <div class="result-box" id="result-box">
+      <div class="result-main">
+        <div class="crop-icon" id="crop-icon">🌱</div>
+        <h2 id="crop-name">—</h2>
+        <p id="crop-msg">—</p>
+      </div>
+      <div class="top3-title">🏆 Top 3 Recommended Crops</div>
+      <div class="top3-list" id="top3-list"></div>
+    </div>
+
+  </div>
+
+  <footer>
+    <p>Built with ❤️ by Team AgriTech — Sree Siddaganga College 2025–26</p>
+  </footer>
+
+  <script>
+    // Crop icons map
+    const cropIcons = {
+      'Coconut':'🥥','Coffee':'☕','Pepper':'🌶️','Cardamum':'🌿',
+      'Ginger':'🫚','Paddy':'🌾','Arecanut':'🌴','Blackgram':'🫘',
+      'Groundnut':'🥜','Cashew':'🪙','Tea':'🍵','Cocoa':'🍫','Cotton':'🌸'
+    };
+
+    // Load dropdowns from API
+    window.onload = async function() {
+      const res  = await fetch('/api/options');
+      const data = await res.json();
+
+      populate('location',   data.locations);
+      populate('season',     data.seasons);
+      populate('soil',       data.soils);
+      populate('irrigation', data.irrigations);
+    };
+
+    function populate(id, items) {
+      const sel = document.getElementById(id);
+      items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item; opt.textContent = item;
+        sel.appendChild(opt);
+      });
+    }
+
+    async function getRecommendation() {
+      // Get values
+      const location    = document.getElementById('location').value;
+      const season      = document.getElementById('season').value;
+      const soil        = document.getElementById('soil').value;
+      const irrigation  = document.getElementById('irrigation').value;
+      const area        = document.getElementById('area').value;
+      const year        = document.getElementById('year').value;
+      const rainfall    = document.getElementById('rainfall').value;
+      const temperature = document.getElementById('temperature').value;
+      const humidity    = document.getElementById('humidity').value;
+
+      // Validate
+      if (!location||!season||!soil||!irrigation||!area||!rainfall||!temperature||!humidity) {
+        alert('⚠️ Please fill all fields before submitting!');
+        return;
+      }
+
+      // Show loading
+      document.getElementById('loading').style.display    = 'block';
+      document.getElementById('result-box').style.display = 'none';
+
+      try {
+        const res = await fetch('/api/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location, season, soil, irrigation,
+            area, year, rainfall, temperature, humidity
+          })
+        });
+
+        const data = await res.json();
+        document.getElementById('loading').style.display = 'none';
+
+        if (data.success) {
+          const box  = document.getElementById('result-box');
+          box.className = 'result-box success';
+
+          document.getElementById('crop-icon').textContent =
+            cropIcons[data.recommended_crop] || '🌱';
+          document.getElementById('crop-name').textContent =
+            data.recommended_crop;
+          document.getElementById('crop-msg').textContent =
+            `✅ Best crop for your farm conditions in ${location} during ${season} season`;
+
+          // Top 3
+          const top3 = document.getElementById('top3-list');
+          top3.innerHTML = '';
+          const medals = ['🥇','🥈','🥉'];
+          data.top3.forEach((item, i) => {
+            top3.innerHTML += `
+              <div class="top3-item">
+                <div class="rank">${medals[i]} Rank ${i+1}</div>
+                <div class="cname">${cropIcons[item.crop]||'🌱'} ${item.crop}</div>
+                <div class="conf">${item.confidence}% confidence</div>
+                <div class="conf-bar">
+                  <div class="conf-fill" style="width:${item.confidence}%"></div>
+                </div>
+              </div>`;
+          });
+
+          box.style.display = 'block';
+        } else {
+          showError(data.error);
+        }
+
+      } catch(e) {
+        document.getElementById('loading').style.display = 'none';
+        showError('Connection error. Make sure Flask server is running.');
+      }
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('result-box');
+      box.className = 'result-box error';
+      box.innerHTML = `<p style="color:#c62828;font-weight:600;">❌ Error: ${msg}</p>`;
+      box.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
+```
+
+---
+
+### ▶️ Test It!
+
+Open browser and go to:
+```
+http://127.0.0.1:5000/recommend

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgriTech — Smart Farming Platform</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f7f0;
+      color: #1a1a1a;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      background: #1a5c2a;
+      padding: 14px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .nav-logo {
+      color: white;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .nav-logo span { color: #7edb7e; }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 30px;
+    }
+    nav ul a {
+      color: #cceedd;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    nav ul a:hover { color: #7edb7e; }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #1a5c2a 0%, #2e7d32 50%, #388e3c 100%);
+      color: white;
+      text-align: center;
+      padding: 90px 20px 70px;
+    }
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+    .hero h1 span { color: #a5d6a7; }
+    .hero p {
+      font-size: 18px;
+      color: #c8e6c9;
+      max-width: 600px;
+      margin: 0 auto 36px;
+      line-height: 1.7;
+    }
+    .hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: #fff;
+      color: #1a5c2a;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .btn-outline {
+      border: 2px solid #fff;
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.15); }
+
+    /* ── STATS BAR ── */
+    .stats {
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      padding: 28px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      flex-wrap: wrap;
+    }
+    .stat-item { text-align: center; }
+    .stat-item h3 { font-size: 28px; color: #1a5c2a; font-weight: 800; }
+    .stat-item p  { font-size: 13px; color: #666; margin-top: 4px; }
+
+    /* ── FEATURES ── */
+    .features {
+      padding: 70px 40px;
+      text-align: center;
+    }
+    .features h2 {
+      font-size: 32px;
+      color: #1a5c2a;
+      margin-bottom: 10px;
+      font-weight: 800;
+    }
+    .features .subtitle {
+      color: #666;
+      font-size: 16px;
+      margin-bottom: 50px;
+    }
+    .cards {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 36px 28px;
+      width: 240px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.13);
+    }
+    .card-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .card h3 {
+      font-size: 17px;
+      color: #1a5c2a;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .card p { font-size: 13px; color: #777; line-height: 1.6; }
+    .card .tag {
+      display: inline-block;
+      margin-top: 14px;
+      background: #e8f5e9;
+      color: #1a5c2a;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .how {
+      background: #e8f5e9;
+      padding: 70px 40px;
+      text-align: center;
+    }
+    .how h2 {
+      font-size: 32px;
+      color: #1a5c2a;
+      font-weight: 800;
+      margin-bottom: 50px;
+    }
+    .steps {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .step { width: 180px; }
+    .step-num {
+      width: 52px; height: 52px;
+      background: #1a5c2a;
+      color: white;
+      border-radius: 50%;
+      font-size: 22px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .step h4 { font-size: 15px; color: #1a5c2a; font-weight: 700; margin-bottom: 8px; }
+    .step p  { font-size: 13px; color: #555; line-height: 1.5; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #1a5c2a;
+      color: #a5d6a7;
+      text-align: center;
+      padding: 24px;
+      font-size: 14px;
+    }
+    footer span { color: #fff; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <div class="nav-logo">🌾 Agri<span>Tech</span></div>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/recommend">Crop Recommend</a></li>
+      <li><a href="/yield">Yield Predict</a></li>
+      <li><a href="/price">Price Predict</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1>Smart Farming with <span>Artificial Intelligence</span></h1>
+    <p>Get AI-powered crop recommendations, yield predictions, and price forecasts — built specifically for Karnataka farmers.</p>
+    <div class="hero-btns">
+      <a href="/recommend" class="btn-primary">🌱 Get Crop Recommendation</a>
+      <a href="/price"     class="btn-outline">📈 Check Price Trends</a>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-item"><h3>3,158+</h3><p>Dataset Records</p></div>
+    <div class="stat-item"><h3>13</h3><p>Crops Covered</p></div>
+    <div class="stat-item"><h3>11</h3><p>Karnataka Districts</p></div>
+    <div class="stat-item"><h3>16 Yrs</h3><p>Historical Data</p></div>
+    <div class="stat-item"><h3>89.7%</h3><p>Model Accuracy</p></div>
+  </div>
+
+  <!-- FEATURE CARDS -->
+  <section class="features">
+    <h2>What AgriTech Can Do For You</h2>
+    <p class="subtitle">Four powerful AI tools in one simple platform</p>
+    <div class="cards">
+      <a href="/recommend" class="card">
+        <div class="card-icon">🌱</div>
+        <h3>Crop Recommendation</h3>
+        <p>Enter your soil and weather details. AI suggests the best crop to grow.</p>
+        <span class="tag">89.7% Accuracy</span>
+      </a>
+      <a href="/yield" class="card">
+        <div class="card-icon">📊</div>
+        <h3>Yield Prediction</h3>
+        <p>Know if your harvest will be Low, Medium, or High before you grow.</p>
+        <span class="tag">65.2% Accuracy</span>
+      </a>
+      <a href="/price" class="card">
+        <div class="card-icon">💰</div>
+        <h3>Price Prediction</h3>
+        <p>See expected market price and get advice on the best time to sell.</p>
+        <span class="tag">AI Powered</span>
+      </a>
+      <a href="#" class="card">
+        <div class="card-icon">🍃</div>
+        <h3>Disease Detection</h3>
+        <p>Upload a leaf photo and instantly identify plant diseases.</p>
+        <span class="tag">Coming Soon</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how">
+    <h2>How It Works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4>Enter Your Details</h4>
+        <p>Fill in your location, soil type, and weather conditions</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4>AI Analyses Data</h4>
+        <p>Our ML model processes 3,158+ records to find the best match</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4>Get Your Result</h4>
+        <p>Instantly receive crop suggestion, yield forecast or price trend</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h4>Make Smart Decision</h4>
+        <p>Use the insights to grow better and sell at the right time</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Built with ❤️ by <span>Team AgriTech</span> — Chandan • Bhavana • Darshan • Goutham</p>
+    <p style="margin-top:6px;">Sree Siddaganga College of Arts Science and Commerce | 2025–26</p>
+  </footer>
+
+</body>
+</html>
+```
+
+---
+
+### ▶️ Test It!
+
+Make sure your Flask server is still running in terminal. Then open browser and go to:
+```
+http://127.0.0.1:5000
