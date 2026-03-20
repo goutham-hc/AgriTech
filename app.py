@@ -1,15 +1,16 @@
-# ─────────────────────────────────────────────
-# AgriTech — Flask Backend (app.py)
-# This file connects your ML models to the web
-# ─────────────────────────────────────────────
-
 from flask import Flask, request, jsonify, render_template
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
+from PIL import Image
 import pickle
 import numpy as np
+import json
+import io
+import os
 
 app = Flask(__name__)
 
-# ── LOAD ALL SAVED MODELS ─────────────────────
+# ── LOAD ALL MODELS ───────────────────────────
 print("🔄 Loading models...")
 
 crop_model    = pickle.load(open('models/crop_model.pkl',   'rb'))
@@ -23,29 +24,33 @@ le_crop       = pickle.load(open('models/le_crop.pkl',       'rb'))
 le_season     = pickle.load(open('models/le_season.pkl',     'rb'))
 le_yield_cat  = pickle.load(open('models/le_yield_cat.pkl',  'rb'))
 
+disease_model = load_model('models/disease_model.h5')
+with open('models/disease_labels.json') as f:
+    disease_labels = json.load(f)
+
 print("✅ All models loaded!")
 
 # ── PAGE ROUTES ───────────────────────────────
 
-# Home page
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# Crop Recommendation page
 @app.route('/recommend')
 def recommend():
     return render_template('recommend.html')
 
-# Yield Prediction page
 @app.route('/yield')
 def yield_page():
     return render_template('yield.html')
 
-# Price Prediction page
 @app.route('/price')
 def price():
     return render_template('price.html')
+
+@app.route('/disease')
+def disease():
+    return render_template('disease.html')
 
 # ── API ROUTES ────────────────────────────────
 
@@ -55,7 +60,6 @@ def api_recommend():
     try:
         data = request.json
 
-        # Encode inputs
         loc  = le_location.transform([data['location']])[0]
         soil = le_soil.transform([data['soil']])[0]
         irr  = le_irrigation.transform([data['irrigation']])[0]
@@ -76,21 +80,20 @@ def api_recommend():
         prediction = crop_model.predict(features)[0]
         crop_name  = le_crop.inverse_transform([prediction])[0]
 
-        # Get top 3 crop probabilities
         proba      = crop_model.predict_proba(features)[0]
         top3_idx   = proba.argsort()[-3:][::-1]
         top3_crops = [
             {
-                'crop': le_crop.inverse_transform([i])[0],
+                'crop':       le_crop.inverse_transform([i])[0],
                 'confidence': round(proba[i] * 100, 1)
             }
             for i in top3_idx
         ]
 
         return jsonify({
-            'success': True,
+            'success':          True,
             'recommended_crop': crop_name,
-            'top3': top3_crops
+            'top3':             top3_crops
         })
 
     except Exception as e:
@@ -125,7 +128,6 @@ def api_yield():
         prediction = yield_model.predict(features)[0]
         yield_cat  = le_yield_cat.inverse_transform([prediction])[0]
 
-        # Emoji and message based on category
         info = {
             'Low':    {'emoji': '🔴', 'msg': 'Low yield expected. Consider improving soil nutrients or changing crop.'},
             'Medium': {'emoji': '🟡', 'msg': 'Medium yield expected. Good conditions — maintain current practices.'},
@@ -133,10 +135,10 @@ def api_yield():
         }
 
         return jsonify({
-            'success':   True,
+            'success':        True,
             'yield_category': yield_cat,
-            'emoji':     info[yield_cat]['emoji'],
-            'message':   info[yield_cat]['msg']
+            'emoji':          info[yield_cat]['emoji'],
+            'message':        info[yield_cat]['msg']
         })
 
     except Exception as e:
@@ -168,11 +170,9 @@ def api_price():
             crop
         ]]
 
-        # Predict log price then convert back to actual price
         log_price    = price_model.predict(features)[0]
         actual_price = int(np.expm1(log_price))
 
-        # Give buying/selling advice
         if actual_price > 150000:
             advice = "📈 Great time to sell! Price is expected to be HIGH."
             trend  = "High"
@@ -184,17 +184,67 @@ def api_price():
             trend  = "Low"
 
         return jsonify({
-            'success':        True,
+            'success':         True,
             'predicted_price': f"₹{actual_price:,}",
-            'trend':          trend,
-            'advice':         advice
+            'trend':           trend,
+            'advice':          advice
         })
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
 
-# ── HELPER ROUTE — Get dropdown options ───────
+# API 4 — Disease Detection
+@app.route('/api/disease', methods=['POST'])
+def api_disease():
+    try:
+        file    = request.files['image']
+        img     = Image.open(file.stream).convert('RGB').resize((224, 224))
+        img_arr = np.array(img) / 255.0
+        img_arr = np.expand_dims(img_arr, axis=0)
+
+        predictions = disease_model.predict(img_arr)
+        idx         = np.argmax(predictions[0])
+        confidence  = float(np.max(predictions[0])) * 100
+        label       = disease_labels[str(idx)]
+
+        parts   = label.split('___')
+        plant   = parts[0].replace('_', ' ')
+        disease = parts[1].replace('_', ' ') if len(parts) > 1 else 'Healthy'
+
+        remedies = {
+            'healthy':        '✅ Your plant is healthy! Keep maintaining good farming practices.',
+            'early blight':   '💊 Apply copper-based fungicide. Remove infected leaves immediately.',
+            'late blight':    '💊 Use Mancozeb fungicide. Avoid overhead irrigation.',
+            'leaf mold':      '💊 Improve ventilation. Apply fungicide spray weekly.',
+            'bacterial spot': '💊 Use copper hydroxide spray. Remove infected parts.',
+            'black rot':      '💊 Apply Bordeaux mixture. Prune infected branches.',
+            'apple scab':     '💊 Apply fungicide at bud break. Remove fallen leaves.',
+            'powdery mildew': '💊 Apply sulfur-based fungicide. Ensure good air circulation.',
+            'rust':           '💊 Apply tebuconazole fungicide. Avoid wetting leaves.',
+            'leaf spot':      '💊 Apply mancozeb spray. Improve field drainage.',
+        }
+
+        remedy = '💊 Consult your local agricultural officer for treatment advice.'
+        for key in remedies:
+            if key in disease.lower():
+                remedy = remedies[key]
+                break
+
+        return jsonify({
+            'success':    True,
+            'plant':      plant,
+            'disease':    disease,
+            'confidence': round(confidence, 1),
+            'remedy':     remedy,
+            'label':      label
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# ── OPTIONS HELPER ────────────────────────────
 @app.route('/api/options', methods=['GET'])
 def api_options():
     return jsonify({
@@ -206,8 +256,8 @@ def api_options():
     })
 
 
-# ── RUN APP ───────────────────────────────────
+# ── RUN ───────────────────────────────────────
 if __name__ == '__main__':
     print("🚀 AgriTech server starting...")
-    print("🌐 Open your browser and go to: http://127.0.0.1:5000")
+    print("🌐 Open your browser: http://127.0.0.1:5000")
     app.run(debug=True)

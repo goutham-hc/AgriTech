@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Disease Detection — AgriTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f7f0; color: #1a1a1a; }
+
+    nav {
+      background: #1a5c2a; padding: 14px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .nav-logo { color: white; font-size: 22px; font-weight: 700; }
+    .nav-logo span { color: #7edb7e; }
+    nav ul { list-style: none; display: flex; gap: 30px; }
+    nav ul a { color: #cceedd; text-decoration: none; font-size: 15px; font-weight: 500; }
+    nav ul a:hover { color: #7edb7e; }
+
+    .page-header {
+      background: linear-gradient(135deg, #1a5c2a, #388e3c);
+      color: white; text-align: center; padding: 50px 20px;
+    }
+    .page-header h1 { font-size: 36px; font-weight: 800; margin-bottom: 10px; }
+    .page-header p  { font-size: 16px; color: #c8e6c9; }
+
+    .container { max-width: 700px; margin: 40px auto; padding: 0 20px 60px; }
+
+    .upload-card {
+      background: white; border-radius: 16px;
+      padding: 40px; box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+      text-align: center;
+    }
+    .upload-card h2 {
+      font-size: 20px; color: #1a5c2a; margin-bottom: 8px;
+      font-weight: 700; border-left: 4px solid #1a5c2a;
+      padding-left: 12px; text-align: left;
+    }
+    .upload-card p {
+      font-size: 14px; color: #777;
+      margin-bottom: 28px; text-align: left;
+    }
+
+    /* Upload Area */
+    .upload-area {
+      border: 2.5px dashed #1a5c2a; border-radius: 14px;
+      padding: 40px 20px; cursor: pointer;
+      transition: background 0.2s; margin-bottom: 20px;
+      background: #f8fdf8;
+    }
+    .upload-area:hover { background: #e8f5e9; }
+    .upload-area .upload-icon { font-size: 52px; margin-bottom: 12px; }
+    .upload-area h3 { font-size: 16px; color: #1a5c2a; font-weight: 700; margin-bottom: 6px; }
+    .upload-area p  { font-size: 13px; color: #888; margin-bottom: 0; }
+
+    #file-input { display: none; }
+
+    /* Preview */
+    .preview-box {
+      display: none; margin-bottom: 20px;
+      border-radius: 12px; overflow: hidden;
+      border: 2px solid #c8e6c9;
+    }
+    .preview-box img {
+      width: 100%; max-height: 300px;
+      object-fit: cover; display: block;
+    }
+    .preview-label {
+      background: #e8f5e9; padding: 8px 16px;
+      font-size: 13px; color: #1a5c2a;
+      font-weight: 600; text-align: left;
+    }
+
+    .btn-submit {
+      width: 100%; background: #1a5c2a;
+      color: white; border: none; padding: 15px;
+      border-radius: 10px; font-size: 17px;
+      font-weight: 700; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover   { background: #145222; }
+    .btn-submit:disabled {
+      background: #aaa; cursor: not-allowed;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center; padding: 20px;
+      color: #1a5c2a; font-weight: 600;
+      display: none; font-size: 16px;
+    }
+
+    /* Result */
+    .result-box {
+      margin-top: 24px; border-radius: 14px;
+      padding: 30px; display: none;
+      animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
+    .result-box.healthy  { background: #e8f5e9; border: 2px solid #66bb6a; }
+    .result-box.diseased { background: #fff8e1; border: 2px solid #ffca28; }
+    .result-box.severe   { background: #ffebee; border: 2px solid #ef9a9a; }
+
+    .result-header { text-align: center; margin-bottom: 20px; }
+    .result-icon   { font-size: 60px; margin-bottom: 10px; }
+    .plant-name {
+      font-size: 14px; color: #888;
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .disease-name {
+      font-size: 28px; font-weight: 800;
+      color: #1a5c2a; margin-bottom: 8px;
+    }
+    .confidence-badge {
+      display: inline-block; padding: 5px 16px;
+      border-radius: 20px; font-size: 13px;
+      font-weight: 700; background: #1a5c2a; color: white;
+    }
+
+    /* Confidence bar */
+    .conf-wrap { margin: 16px 0; }
+    .conf-label {
+      display: flex; justify-content: space-between;
+      font-size: 13px; color: #555; margin-bottom: 6px;
+    }
+    .conf-bar {
+      height: 10px; background: #e0e0e0;
+      border-radius: 5px; overflow: hidden;
+    }
+    .conf-fill {
+      height: 100%; background: #1a5c2a;
+      border-radius: 5px; transition: width 1s ease;
+    }
+
+    /* Remedy box */
+    .remedy-box {
+      background: white; border-radius: 10px;
+      padding: 16px 20px; margin-top: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .remedy-box h4 {
+      font-size: 14px; color: #1a5c2a;
+      font-weight: 700; margin-bottom: 10px;
+    }
+    .remedy-box p {
+      font-size: 14px; color: #444; line-height: 1.7;
+    }
+
+    /* Tips */
+    .tips {
+      background: #e8f5e9; border-radius: 10px;
+      padding: 14px 18px; margin-top: 12px;
+      font-size: 13px; color: #1a5c2a; line-height: 1.7;
+    }
+
+    .btn-retry {
+      margin-top: 16px; width: 100%;
+      background: white; color: #1a5c2a;
+      border: 2px solid #1a5c2a; padding: 12px;
+      border-radius: 10px; font-size: 15px;
+      font-weight: 600; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-retry:hover { background: #e8f5e9; }
+
+    footer {
+      background: #1a5c2a; color: #a5d6a7;
+      text-align: center; padding: 20px; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <div class="nav-logo">🌾 Agri<span>Tech</span></div>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/recommend">Crop Recommend</a></li>
+      <li><a href="/yield">Yield Predict</a></li>
+      <li><a href="/price">Price Predict</a></li>
+      <li><a href="/disease">Disease Detect</a></li>
+    </ul>
+  </nav>
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <h1>🍃 Plant Disease Detection</h1>
+    <p>Upload a leaf photo and get instant AI diagnosis with treatment advice</p>
+  </div>
+
+  <div class="container">
+    <div class="upload-card">
+      <h2>Upload Leaf Photo</h2>
+      <p>Take a clear photo of the affected leaf and upload it below. Our AI will identify the disease instantly.</p>
+
+      <!-- Upload Area -->
+      <div class="upload-area" onclick="document.getElementById('file-input').click()">
+        <div class="upload-icon">📷</div>
+        <h3>Click to Upload Leaf Photo</h3>
+        <p>Supports JPG, JPEG, PNG — Max 10MB</p>
+      </div>
+
+      <input type="file" id="file-input" accept="image/*" onchange="previewImage(event)"/>
+
+      <!-- Image Preview -->
+      <div class="preview-box" id="preview-box">
+        <img id="preview-img" src="" alt="Leaf Preview"/>
+        <div class="preview-label" id="preview-label">📷 Ready to analyse</div>
+      </div>
+
+      <button class="btn-submit" id="submit-btn"
+              onclick="detectDisease()" disabled>
+        🔍 Detect Disease
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      🧠 AI is analysing your leaf image...
+    </div>
+
+    <!-- Result -->
+    <div class="result-box" id="result-box">
+      <div class="result-header">
+        <div class="result-icon"  id="result-icon">🍃</div>
+        <div class="plant-name"   id="plant-name">—</div>
+        <div class="disease-name" id="disease-name">—</div>
+        <div class="confidence-badge" id="conf-badge">—</div>
+      </div>
+
+      <div class="conf-wrap">
+        <div class="conf-label">
+          <span>AI Confidence</span>
+          <span id="conf-text">—</span>
+        </div>
+        <div class="conf-bar">
+          <div class="conf-fill" id="conf-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="remedy-box">
+        <h4>💊 Recommended Treatment</h4>
+        <p id="remedy-text">—</p>
+      </div>
+
+      <div class="tips">
+        💡 <strong>Tip:</strong> For best results, take a close-up photo of a single
+        affected leaf in good lighting. Avoid blurry or dark images.
+      </div>
+
+      <button class="btn-retry" onclick="resetForm()">
+        🔄 Check Another Leaf
+      </button>
+    </div>
+
+  </div>
+
+  <footer>
+    <p>Built with ❤️ by Team AgriTech — Sree Siddaganga College 2025–26</p>
+  </footer>
+
+  <script>
+    function previewImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('preview-img').src   = e.target.result;
+        document.getElementById('preview-box').style.display  = 'block';
+        document.getElementById('preview-label').textContent =
+          '📷 ' + file.name + ' — Ready to analyse!';
+        document.getElementById('submit-btn').disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function detectDisease() {
+      const fileInput = document.getElementById('file-input');
+      if (!fileInput.files[0]) {
+        alert('Please upload a leaf image first!');
+        return;
+      }
+
+      document.getElementById('loading').style.display    = 'block';
+      document.getElementById('result-box').style.display = 'none';
+      document.getElementById('submit-btn').disabled      = true;
+
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+
+      try {
+        const res  = await fetch('/api/disease', {
+          method: 'POST',
+          body:   formData
+        });
+        const data = await res.json();
+
+        document.getElementById('loading').style.display = 'none';
+
+        if (data.success) {
+          const box      = document.getElementById('result-box');
+          const isHealth = data.disease.toLowerCase().includes('healthy');
+          const conf     = data.confidence;
+
+          // Set box style
+          box.className = 'result-box ' +
+            (isHealth ? 'healthy' : conf > 70 ? 'severe' : 'diseased');
+
+          document.getElementById('result-icon').textContent  =
+            isHealth ? '✅' : '⚠️';
+          document.getElementById('plant-name').textContent   =
+            '🌿 Plant: ' + data.plant;
+          document.getElementById('disease-name').textContent =
+            data.disease;
+          document.getElementById('conf-badge').textContent   =
+            conf.toFixed(1) + '% Confidence';
+          document.getElementById('conf-text').textContent    =
+            conf.toFixed(1) + '%';
+          document.getElementById('conf-fill').style.width    =
+            conf + '%';
+          document.getElementById('remedy-text').textContent  =
+            data.remedy;
+
+          box.style.display = 'block';
+        } else {
+          alert('Error: ' + data.error);
+          document.getElementById('submit-btn').disabled = false;
+        }
+
+      } catch(e) {
+        document.getElementById('loading').style.display = 'none';
+        alert('Connection error. Make sure Flask server is running!');
+        document.getElementById('submit-btn').disabled = false;
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('file-input').value          = '';
+      document.getElementById('preview-box').style.display = 'none';
+      document.getElementById('result-box').style.display  = 'none';
+      document.getElementById('submit-btn').disabled       = true;
+    }
+  </script>
+
+</body>
+</html>
