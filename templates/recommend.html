@@ -242,14 +242,21 @@
 
     // Load dropdowns from API
     window.onload = async function() {
-      const res  = await fetch('/api/options');
-      const data = await res.json();
+  try {
+    const res  = await fetch('/api/options');
+    const data = await res.json();
 
-      populate('location',   data.locations);
-      populate('season',     data.seasons);
-      populate('soil',       data.soils);
-      populate('irrigation', data.irrigations);
-    };
+    populate('location',   data.locations);
+    populate('season',     data.seasons);
+    populate('soil',       data.soils);
+    populate('irrigation', data.irrigations);
+
+    console.log('✅ Dropdowns loaded!', data);
+  } catch(e) {
+    console.error('❌ Failed to load options:', e);
+    alert('Failed to load dropdown options. Please refresh the page!');
+  }
+};
 
     function populate(id, items) {
       const sel = document.getElementById(id);

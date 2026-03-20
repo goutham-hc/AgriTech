@@ -41,11 +41,18 @@
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-group label { font-size: 13px; font-weight: 600; color: #444; }
     .form-group input,
-    .form-group select {
-      padding: 11px 14px; border: 1.5px solid #ddd;
-      border-radius: 8px; font-size: 14px;
-      transition: border 0.2s; outline: none;
-    }
+.form-group select {
+  padding: 11px 14px; border: 1.5px solid #ddd;
+  border-radius: 8px; font-size: 14px;
+  transition: border 0.2s; outline: none;
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
+.form-group select option {
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
     .form-group input:focus,
     .form-group select:focus { border-color: #1a5c2a; }
 
@@ -243,89 +250,110 @@
   </footer>
 
   <script>
-    window.onload = async function() {
+  // Load dropdowns
+  async function loadOptions() {
+    try {
       const res  = await fetch('/api/options');
       const data = await res.json();
-      populate('crop',       data.crops);
-      populate('location',   data.locations);
-      populate('season',     data.seasons);
-      populate('soil',       data.soils);
-      populate('irrigation', data.irrigations);
-    };
 
-    function populate(id, items) {
-      const sel = document.getElementById(id);
-      items.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = item; opt.textContent = item;
-        sel.appendChild(opt);
+      console.log('Data received:', data);
+
+      populateSelect('crop',       data.crops);
+      populateSelect('location',   data.locations);
+      populateSelect('season',     data.seasons);
+      populateSelect('soil',       data.soils);
+      populateSelect('irrigation', data.irrigations);
+
+      console.log('✅ All dropdowns loaded!');
+    } catch(e) {
+      console.error('❌ Error:', e);
+    }
+  }
+
+  function populateSelect(id, items) {
+    const sel = document.getElementById(id);
+    if (!sel) { console.error('Element not found:', id); return; }
+    sel.innerHTML = '<option value="">-- Select --</option>';
+    items.forEach(item => {
+      const opt    = document.createElement('option');
+      opt.value    = item;
+      opt.textContent = item;
+      opt.style.color      = '#1a1a1a';
+      opt.style.background = '#ffffff';
+      sel.appendChild(opt);
+    });
+    console.log(`✅ ${id} loaded with ${items.length} options`);
+  }
+
+  // Try loading immediately + retry after 1 second
+  loadOptions();
+  setTimeout(loadOptions, 1000);
+
+  // rest of your predictYield function stays same...
+  const tipsMap = {
+    'High':   'Your conditions are excellent! Make sure you have enough storage and plan your selling strategy in advance to get the best market price.',
+    'Medium': 'Moderate yield expected. Ensure timely irrigation and apply recommended fertilizers to push towards higher yield.',
+    'Low':    'Low yield conditions detected. Consider improving soil quality, switching irrigation method, or consulting an agricultural officer for guidance.'
+  };
+
+  const meterMap = { 'High': '90%', 'Medium': '55%', 'Low': '20%' };
+  const emojiMap = { 'High': '🟢', 'Medium': '🟡', 'Low': '🔴' };
+
+  async function predictYield() {
+    const crop        = document.getElementById('crop').value;
+    const location    = document.getElementById('location').value;
+    const season      = document.getElementById('season').value;
+    const soil        = document.getElementById('soil').value;
+    const irrigation  = document.getElementById('irrigation').value;
+    const area        = document.getElementById('area').value;
+    const year        = document.getElementById('year').value;
+    const rainfall    = document.getElementById('rainfall').value;
+    const temperature = document.getElementById('temperature').value;
+    const humidity    = document.getElementById('humidity').value;
+
+    if (!crop||!location||!season||!soil||!irrigation||!area||!rainfall||!temperature||!humidity) {
+      alert('⚠️ Please fill all fields!');
+      return;
+    }
+
+    document.getElementById('loading').style.display    = 'block';
+    document.getElementById('result-box').style.display = 'none';
+
+    try {
+      const res = await fetch('/api/yield', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          crop, location, season, soil, irrigation,
+          area, year, rainfall, temperature, humidity
+        })
       });
-    }
 
-    const tipsMap = {
-      'High':   'Your conditions are excellent! Make sure you have enough storage and plan your selling strategy in advance to get the best market price.',
-      'Medium': 'Moderate yield expected. Ensure timely irrigation and apply recommended fertilizers to push towards higher yield.',
-      'Low':    'Low yield conditions detected. Consider improving soil quality, switching irrigation method, or consulting an agricultural officer for guidance.'
-    };
+      const data = await res.json();
+      document.getElementById('loading').style.display = 'none';
 
-    const meterMap = { 'High': '90%', 'Medium': '55%', 'Low': '20%' };
-    const emojiMap = { 'High': '🟢', 'Medium': '🟡', 'Low': '🔴' };
+      if (data.success) {
+        const cat = data.yield_category;
+        const box = document.getElementById('result-box');
 
-    async function predictYield() {
-      const crop        = document.getElementById('crop').value;
-      const location    = document.getElementById('location').value;
-      const season      = document.getElementById('season').value;
-      const soil        = document.getElementById('soil').value;
-      const irrigation  = document.getElementById('irrigation').value;
-      const area        = document.getElementById('area').value;
-      const year        = document.getElementById('year').value;
-      const rainfall    = document.getElementById('rainfall').value;
-      const temperature = document.getElementById('temperature').value;
-      const humidity    = document.getElementById('humidity').value;
+        box.className = `result-box ${cat.toLowerCase()}`;
+        document.getElementById('result-emoji').textContent    = emojiMap[cat];
+        document.getElementById('result-category').textContent = `${cat} Yield Expected`;
+        document.getElementById('result-msg').textContent      = data.message;
+        document.getElementById('tips-text').textContent       = tipsMap[cat];
+        document.getElementById('meter-fill').style.width      = meterMap[cat];
 
-      if (!crop||!location||!season||!soil||!irrigation||!area||!rainfall||!temperature||!humidity) {
-        alert('⚠️ Please fill all fields!');
-        return;
+        box.style.display = 'block';
+      } else {
+        alert('Error: ' + data.error);
       }
 
-      document.getElementById('loading').style.display    = 'block';
-      document.getElementById('result-box').style.display = 'none';
-
-      try {
-        const res = await fetch('/api/yield', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            crop, location, season, soil, irrigation,
-            area, year, rainfall, temperature, humidity
-          })
-        });
-
-        const data = await res.json();
-        document.getElementById('loading').style.display = 'none';
-
-        if (data.success) {
-          const cat = data.yield_category;
-          const box = document.getElementById('result-box');
-
-          box.className = `result-box ${cat.toLowerCase()}`;
-          document.getElementById('result-emoji').textContent    = emojiMap[cat];
-          document.getElementById('result-category').textContent = `${cat} Yield Expected`;
-          document.getElementById('result-msg').textContent      = data.message;
-          document.getElementById('tips-text').textContent       = tipsMap[cat];
-          document.getElementById('meter-fill').style.width      = meterMap[cat];
-
-          box.style.display = 'block';
-        } else {
-          alert('Error: ' + data.error);
-        }
-
-      } catch(e) {
-        document.getElementById('loading').style.display = 'none';
-        alert('Connection error. Make sure Flask server is running.');
-      }
+    } catch(e) {
+      document.getElementById('loading').style.display = 'none';
+      alert('Connection error. Make sure Flask server is running.');
     }
-  </script>
+  }
+</script>
 </body>
 </html>
 ```

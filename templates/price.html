@@ -45,7 +45,9 @@
       padding: 11px 14px; border: 1.5px solid #ddd;
       border-radius: 8px; font-size: 14px;
       transition: border 0.2s; outline: none;
+      background-color: #ffffff; color: #1a1a1a;
     }
+    .form-group select option { background-color: #ffffff; color: #1a1a1a; }
     .form-group input:focus,
     .form-group select:focus { border-color: #1a5c2a; }
 
@@ -57,7 +59,6 @@
     }
     .btn-submit:hover { background: #145222; }
 
-    /* Result */
     .result-box {
       margin-top: 30px; border-radius: 14px;
       padding: 36px; display: none;
@@ -91,30 +92,20 @@
       padding: 18px 22px; margin-top: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
-    .advice-box h4 {
-      font-size: 14px; color: #1a5c2a;
-      font-weight: 700; margin-bottom: 10px;
-    }
-    .advice-box p { font-size: 14px; color: #555; line-height: 1.7; }
+    .advice-box h4 { font-size: 14px; color: #1a5c2a; font-weight: 700; margin-bottom: 10px; }
+    .advice-box p  { font-size: 14px; color: #555; line-height: 1.7; }
 
-    /* Price info cards */
-    .info-cards {
-      display: flex; gap: 14px;
-      margin-top: 16px; flex-wrap: wrap;
-    }
+    .info-cards { display: flex; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
     .info-card {
-      flex: 1; background: white;
-      border-radius: 10px; padding: 14px 18px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      min-width: 130px;
+      flex: 1; background: white; border-radius: 10px;
+      padding: 14px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 130px;
     }
     .info-card .ic-label { font-size: 11px; color: #888; margin-bottom: 4px; }
     .info-card .ic-value { font-size: 16px; font-weight: 700; color: #1a5c2a; }
 
     .loading {
-      text-align: center; padding: 20px;
-      color: #1a5c2a; font-weight: 600;
-      display: none; font-size: 16px;
+      text-align: center; padding: 20px; color: #1a5c2a;
+      font-weight: 600; display: none; font-size: 16px;
     }
 
     footer {
@@ -205,8 +196,7 @@
 
         <div class="form-group">
           <label>💨 Humidity (%)</label>
-          <input type="number" id="humidity"
-            placeholder="e.g. 55" min="0" max="100"/>
+          <input type="number" id="humidity" placeholder="e.g. 55" min="0" max="100"/>
         </div>
 
       </div>
@@ -259,25 +249,38 @@
   </footer>
 
   <script>
-    window.onload = async function() {
-      const res  = await fetch('/api/options');
-      const data = await res.json();
-      populate('crop',       data.crops);
-      populate('location',   data.locations);
-      populate('season',     data.seasons);
-      populate('soil',       data.soils);
-      populate('irrigation', data.irrigations);
-    };
+    // Load all dropdown options from Flask API
+    async function loadOptions() {
+      try {
+        const res  = await fetch('/api/options');
+        const data = await res.json();
+        populateSelect('crop',       data.crops);
+        populateSelect('location',   data.locations);
+        populateSelect('season',     data.seasons);
+        populateSelect('soil',       data.soils);
+        populateSelect('irrigation', data.irrigations);
+      } catch(e) {
+        console.error('Failed to load options:', e);
+      }
+    }
 
-    function populate(id, items) {
+    function populateSelect(id, items) {
       const sel = document.getElementById(id);
-      items.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = item; opt.textContent = item;
+      if (!sel) return;
+      sel.innerHTML = '<option value="">-- Select --</option>';
+      items.forEach(function(item) {
+        const opt        = document.createElement('option');
+        opt.value        = item;
+        opt.textContent  = item;
         sel.appendChild(opt);
       });
     }
 
+    // Load on page ready
+    loadOptions();
+    setTimeout(loadOptions, 1000);
+
+    // Price prediction function
     async function predictPrice() {
       const crop        = document.getElementById('crop').value;
       const location    = document.getElementById('location').value;
@@ -292,7 +295,7 @@
 
       if (!crop||!location||!season||!soil||!irrigation||
           !area||!rainfall||!temperature||!humidity) {
-        alert('⚠️ Please fill all fields!');
+        alert('Please fill all fields!');
         return;
       }
 
@@ -301,7 +304,7 @@
 
       try {
         const res = await fetch('/api/price', {
-          method: 'POST',
+          method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             crop, location, season, soil, irrigation,
@@ -316,7 +319,7 @@
           const trend = data.trend.toLowerCase();
           const box   = document.getElementById('result-box');
 
-          box.className = `result-box ${trend}`;
+          box.className = 'result-box ' + trend;
 
           document.getElementById('price-display').textContent = data.predicted_price;
 
@@ -325,10 +328,9 @@
             'medium': '📊 Average Price Expected',
             'low':    '📉 Low Price Expected'
           };
+
           document.getElementById('trend-badge').textContent  = trendLabels[trend];
           document.getElementById('advice-text').textContent  = data.advice;
-
-          // Info cards
           document.getElementById('info-location').textContent = location;
           document.getElementById('info-crop').textContent     = crop;
           document.getElementById('info-season').textContent   = season;
@@ -345,14 +347,6 @@
       }
     }
   </script>
+
 </body>
 </html>
-```
-
----
-
-### ▶️ Test It!
-
-Open browser and go to:
-```
-http://127.0.0.1:5000/price
